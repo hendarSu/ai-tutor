@@ -9,7 +9,7 @@ The AI Tutor App is designed to provide personalized tutoring using artificial i
 To install the AI Tutor App, follow these steps:
 1. Clone the repository:
     ```bash
-    git clone https://github.com/hendarsu/ai-tutor-app.git
+    git clone https://github.com/hendarsu/ai-tutor.git
     ```
 2. Navigate to the project directory:
     ```bash
