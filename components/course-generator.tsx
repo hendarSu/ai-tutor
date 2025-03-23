@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Search } from "lucide-react"
+import { Loader2, Search, Book } from "lucide-react"
 import { generateCourse } from "@/app/actions"
 import { useCourseStore, type Course } from "@/lib/course-store"
 import { Progress } from "@/components/ui/progress"
@@ -168,20 +168,7 @@ export default function CourseGenerator() {
                         <h3 className="text-xl font-semibold">{course.title}</h3>
                         <div className="flex items-center text-muted-foreground">
                           <span className="flex items-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="mr-1"
-                            >
-                              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-                            </svg>
+                            <Book className="mr-1 h-4 w-4" />
                             {getTotalLessons(course)} lessons
                           </span>
                         </div>
