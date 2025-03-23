@@ -1,15 +1,14 @@
 "use server"
 
 import { generateText, streamText } from "ai"
-import { openaiClient } from "@/lib/openai"
+import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
-import { logToFile } from "@/utils/logger"
 
 // AI Tutor function
 export async function askTutor(question: string): Promise<string> {
   try {
     const { text } = await generateText({
-      model: openaiClient("gpt-4o"),
+      model: openai("gpt-4o"),
       system:
         "You are a helpful, knowledgeable tutor. Provide clear, concise, and accurate information. Include examples where appropriate. Be encouraging and supportive.",
       prompt: question,
@@ -26,7 +25,7 @@ export async function askTutor(question: string): Promise<string> {
 export async function streamTutorResponse(question: string) {
   try {
     const result = streamText({
-      model: openaiClient("gpt-4o"),
+      model: openai("gpt-4o"),
       system:
         "You are a helpful, knowledgeable tutor. Provide clear, concise, and accurate information. Include examples where appropriate. Be encouraging and supportive.",
       prompt: question,
@@ -69,44 +68,19 @@ export async function generateCourse(topic: string, level: string, additionalInf
       4. Each section should have 2-3 subsections
       
       Make the content educational, engaging, and practical.
-      Return the response in the following JSON format:
-      {
-        "title": "Course Title",
-        "description": "Course Description",
-        "sections": [
-          {
-            "title": "Section Title",
-            "subsections": [
-              {
-                "title": "Subsection Title",
-                "content": "Subsection Content"
-              }
-            ]
-          }
-        ]
-      }
     `
 
-    const data = await generateText({
-      model: openaiClient("gpt-4o"),
+    const { text } = await generateText({
+      model: openai("gpt-4o"),
       system:
         "You are an expert course creator with experience in instructional design. Create well-structured, engaging, and educational course content. Return ONLY valid JSON that matches the schema.",
       prompt,
     })
 
-    const text = data.text.replace(/```json|```/g, "").trim();
-    
-    // Log the raw response for debugging
-    logToFile('generateCourseResponse.log', text);
+    const textToJSON = text.replace(/```json|```/g, "").trim();
 
     // Parse the JSON response
-    let jsonResponse;
-    try {
-      jsonResponse = JSON.parse(text);
-    } catch (parseError) {
-      console.error("JSON parsing error in generateCourse:", parseError);
-      throw new Error("Failed to parse course content");
-    }
+    const jsonResponse = JSON.parse(textToJSON)
     return courseSchema.parse(jsonResponse)
   } catch (error) {
     console.error("Error in generateCourse:", error)
