@@ -11,9 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Search, Book } from "lucide-react"
-import { generateCourse } from "@/app/actions"
 import { useCourseStore, type Course } from "@/lib/course-store"
 import { Progress } from "@/components/ui/progress"
+import { z } from "zod"
+import { useSettingsStore } from "@/lib/settings-store"
+import { createOpenAI } from "@ai-sdk/openai"
+import { generateText } from "ai"
 
 export default function CourseGenerator() {
   const router = useRouter()
@@ -25,6 +28,59 @@ export default function CourseGenerator() {
   const [searchQuery, setSearchQuery] = useState("")
 
   const { courses, addCourse } = useCourseStore()
+
+  const generateCourse = async (topic: string, level: string, additionalInfo: string) =>{
+    try {
+      const courseSchema = z.object({
+        title: z.string(),
+        description: z.string(),
+        sections: z.array(
+          z.object({
+            title: z.string(),
+            subsections: z.array(
+              z.object({
+                title: z.string(),
+                content: z.string(),
+              }),
+            ),
+          }),
+        ),
+      })
+  
+      const prompt = `
+        Create a comprehensive online course about "${topic}" for ${level} level students.
+        ${additionalInfo ? `Additional requirements: ${additionalInfo}` : ""}
+        
+        The course should include:
+        1. A catchy title
+        2. A detailed description
+        3. 5-7 main sections
+        4. Each section should have 2-3 subsections
+        
+        Make the content educational, engaging, and practical.
+      `
+  
+      const { openaiApiKey } = useSettingsStore.getState();
+      const openai = createOpenAI({ apiKey: openaiApiKey, compatibility: "strict" })
+  
+      const { text } = await generateText({
+        model: openai("gpt-4o"),
+        system:
+          "You are an expert course creator with experience in instructional design. Create well-structured, engaging, and educational course content. Return ONLY valid JSON that matches the schema.",
+        prompt,
+      })
+  
+      const textToJSON = text.replace(/```json|```/g, "").trim()
+  
+      // Parse the JSON response
+      const jsonResponse = JSON.parse(textToJSON)
+      return courseSchema.parse(jsonResponse)
+    } catch (error) {
+      console.error("Error in generateCourse:", error)
+      throw new Error("Failed to generate course content")
+    }
+  }
+  
 
   const filteredCourses = courses.filter((course) => course.title.toLowerCase().includes(searchQuery.toLowerCase()))
 

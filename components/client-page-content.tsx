@@ -11,7 +11,7 @@ import { ApiKeyCheck } from "@/components/api-key-check"
 
 export function ClientPageContent() {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState("tutor")
+  const [activeTab, setActiveTab] = useState("generator")
 
   useEffect(() => {
     const tab = searchParams.get("tab")
@@ -35,18 +35,18 @@ export function ClientPageContent() {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="tutor" className="flex items-center gap-2">
+              {/* <TabsTrigger value="tutor" className="flex items-center gap-2">
                 <LucideMessageSquare className="h-4 w-4" />
                 <span>AI Tutor</span>
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger value="generator" className="flex items-center gap-2">
                 <LucideBookOpen className="h-4 w-4" />
                 <span>Course Generator</span>
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="tutor" className="mt-6">
+            {/* <TabsContent value="tutor" className="mt-6">
               <AITutor />
-            </TabsContent>
+            </TabsContent> */}
             <TabsContent value="generator" className="mt-6">
               <CourseGenerator />
             </TabsContent>

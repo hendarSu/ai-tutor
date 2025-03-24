@@ -34,9 +34,10 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 import ReactMarkdown from "react-markdown"
 import { useSettingsStore } from "@/lib/settings-store"
+import { getSettings } from "@/lib/openai"
 
 export function CourseDetailContent() {
   const params = useParams()
@@ -243,10 +244,11 @@ export function CourseDetailContent() {
       const promptInstructions =
         customInstructions || "Make it more engaging, clear, and educational. Add examples where appropriate."
 
+      const openai = createOpenAI({ apiKey: openaiApiKey })
       const { text } = await generateText({
-        model: openai("gpt-4", { apiKey: openaiApiKey }), // Ensure API key is passed
-        system: `You are an expert educational content creator. Improve the given content based on the following instructions: ${promptInstructions}. Keep the same general topic and learning objectives. Format the content in ${contentFormat === "markdown" ? "Markdown" : "plain text"}.`,
-        prompt: `Improve the following educational content:\n\n${editedContent}`,
+        model: openai("gpt-4"), // Ensure API key is passed
+        system: `Anda adalah seorang ahli dalam menciptakan konten edukatif. Perbaiki konten yang diberikan berdasarkan instruksi berikut: ${promptInstructions}. Pertahankan topik umum dan tujuan pembelajaran yang sama. Format konten dalam ${contentFormat === "markdown" ? "Markdown" : "teks biasa"}.`,
+        prompt: `Perbaiki konten edukatif berikut:\n\n${editedContent}`,
       })
 
       setEditedContent(text)
@@ -268,10 +270,11 @@ export function CourseDetailContent() {
         throw new Error("OpenAI API key is not set")
       }
 
+      const openai = createOpenAI({ apiKey: openaiApiKey })
       const { text } = await generateText({
-        model: openai("gpt-4", { apiKey: openaiApiKey }), // Ensure API key is passed
+        model: openai("gpt-4"), // Ensure API key is passed
         system:
-          "You are an expert at converting plain text to well-formatted Markdown. Convert the given content to Markdown format, adding appropriate headers, lists, code blocks, emphasis, and other Markdown features to improve readability and structure.",
+          "You are an expert at converting plain text to well-formatted Markdown. Convert the given content to Markdown format, adding appropriate headers, lists, code blocks, emphasis, and other Markdown features to improve readability and structure. Ensure the content is detailed and comprehensive.",
         prompt: `Convert this plain text educational content to well-formatted Markdown:\n\n${editedContent}`,
       })
 
@@ -296,10 +299,12 @@ export function CourseDetailContent() {
         throw new Error("OpenAI API key is not set")
       }
 
+      const openai = createOpenAI({ apiKey: openaiApiKey })
+
       const { text } = await generateText({
-        model: openai("gpt-4", { apiKey: openaiApiKey }), // Ensure API key is passed
-        system: `You are an expert educational content creator. Create engaging, clear, and educational content for the given topic. Include examples and explanations. Format the content in ${contentFormat === "markdown" ? "Markdown with proper headers, lists, code blocks, and formatting" : "plain text"}.`,
-        prompt: `Create educational content for a subsection titled "${newSubsectionTitle}" in a course about "${course.title}". ${newSubsectionPrompt ? `Additional context: ${newSubsectionPrompt}` : ""}`,
+        model: openai("gpt-4"), // Ensure API key is passed
+        system: `Anda adalah seorang ahli dalam menciptakan konten edukatif. Buat konten yang menarik, jelas, dan edukatif untuk topik yang diberikan. Sertakan penjelasan rinci, contoh, dan instruksi langkah demi langkah. Format konten dalam ${contentFormat === "markdown" ? "Markdown dengan header, daftar, blok kode, dan format yang tepat" : "teks biasa"}.`,
+        prompt: `Buat konten edukatif yang rinci untuk subbagian berjudul "${newSubsectionTitle}" dalam kursus tentang "${course.title}". ${newSubsectionPrompt ? `Konteks tambahan: ${newSubsectionPrompt}` : ""}`,
       })
 
       const updatedCourse = { ...course }
@@ -349,156 +354,149 @@ export function CourseDetailContent() {
               </div>
               <div className="flex-1 overflow-y-auto">
                 {course.sections.map((section, sectionIndex) => (
-                  <div key={sectionIndex} className="border-b last:border-b-0">
-                    {/* Update the section rendering in the sidebar to use the new toggleSection behavior */}
-                    {/* Replace the section button and toggle button with this: */}
+                    <div key={sectionIndex} className="border-b last:border-b-0">
                     <div className="flex items-center">
                       <button
-                        className={`flex-1 text-left p-4 hover:bg-muted/50 flex items-center ${
-                          activeSection === sectionIndex && activeSubsection === -1 ? "bg-muted" : ""
-                        }`}
-                        onClick={() => {
-                          setActiveSection(sectionIndex)
-                          setActiveSubsection(-1)
-                          setIsEditing(false)
-                          setEditMode("edit")
-                        }}
+                      className={`flex-1 text-left p-4 hover:bg-muted/50 flex items-center ${
+                        activeSection === sectionIndex ? "bg-muted" : ""
+                      }`}
+                      onClick={() => toggleSection(sectionIndex)}
                       >
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted mr-3 text-sm">
-                          {sectionIndex + 1}
-                        </div>
-                        <span className="flex-1 font-medium">{section.title}</span>
-                        {completedLessons.has(`section-${sectionIndex}`) && (
-                          <Check className="h-4 w-4 text-green-500 ml-2" />
-                        )}
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted mr-3 text-sm">
+                        {sectionIndex + 1}
+                      </div>
+                      <span className="flex-1 font-medium">{section.title}</span>
+                      {completedLessons.has(`section-${sectionIndex}`) && (
+                        <Check className="h-4 w-4 text-green-500 ml-2" />
+                      )}
                       </button>
                       <button
-                        className="p-4 text-muted-foreground hover:bg-muted/50"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleSection(sectionIndex)
-                        }}
+                      className="p-4 text-muted-foreground hover:bg-muted/50"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleSection(sectionIndex)
+                      }}
                       >
-                        {collapsedSections.has(sectionIndex) ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronUp className="h-4 w-4" />
-                        )}
+                      {collapsedSections.has(sectionIndex) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronUp className="h-4 w-4" />
+                      )}
                       </button>
                     </div>
 
                     {!collapsedSections.has(sectionIndex) && (
                       <div>
-                        {section.subsections.map((subsection, subsectionIndex) => (
-                          <button
-                            key={subsectionIndex}
-                            className={`w-full text-left p-4 pl-16 hover:bg-muted/50 flex items-center ${
-                              activeSection === sectionIndex && activeSubsection === subsectionIndex ? "bg-muted" : ""
-                            }`}
-                            onClick={() => {
-                              setActiveSection(sectionIndex)
-                              setActiveSubsection(subsectionIndex)
-                              setIsEditing(false)
-                              setEditMode("edit")
-                            }}
-                          >
-                            <span className="flex-1">{subsection.title}</span>
-                            {completedLessons.has(`section-${sectionIndex}-subsection-${subsectionIndex}`) && (
-                              <Check className="h-4 w-4 text-green-500" />
-                            )}
-                          </button>
-                        ))}
+                      {section.subsections.map((subsection, subsectionIndex) => (
+                        <button
+                        key={subsectionIndex}
+                        className={`w-full text-left p-4 pl-16 hover:bg-muted/50 flex items-center ${
+                          activeSection === sectionIndex && activeSubsection === subsectionIndex ? "bg-muted" : ""
+                        }`}
+                        onClick={() => {
+                          setActiveSection(sectionIndex)
+                          setActiveSubsection(subsectionIndex)
+                          setIsEditing(false)
+                          setEditMode("edit")
+                        }}
+                        >
+                        <span className="flex-1">{subsection.title}</span>
+                        {completedLessons.has(`section-${sectionIndex}-subsection-${subsectionIndex}`) && (
+                          <Check className="h-4 w-4 text-green-500" />
+                        )}
+                        </button>
+                      ))}
 
-                        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              className="w-full justify-start pl-16 text-muted-foreground hover:text-foreground"
-                              onClick={() => {
-                                setActiveSection(sectionIndex)
-                                setIsAddDialogOpen(true)
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              <span>Add new subsection</span>
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Add New Subsection</DialogTitle>
-                              <DialogDescription>Create a new subsection for {section.title}</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="title">Subsection Title</Label>
-                                <Input
-                                  id="title"
-                                  placeholder="Enter subsection title"
-                                  value={newSubsectionTitle}
-                                  onChange={(e) => setNewSubsectionTitle(e.target.value)}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="format">Content Format</Label>
-                                <div className="flex space-x-4">
-                                  <div className="flex items-center">
-                                    <input
-                                      type="radio"
-                                      id="format-text"
-                                      name="format"
-                                      className="mr-2"
-                                      checked={contentFormat === "text"}
-                                      onChange={() => setContentFormat("text")}
-                                    />
-                                    <label htmlFor="format-text">Plain Text</label>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <input
-                                      type="radio"
-                                      id="format-markdown"
-                                      name="format"
-                                      className="mr-2"
-                                      checked={contentFormat === "markdown"}
-                                      onChange={() => setContentFormat("markdown")}
-                                    />
-                                    <label htmlFor="format-markdown">Markdown</label>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="prompt">Content Prompt (Optional)</Label>
-                                <Textarea
-                                  id="prompt"
-                                  placeholder="Describe what you want this subsection to cover"
-                                  value={newSubsectionPrompt}
-                                  onChange={(e) => setNewSubsectionPrompt(e.target.value)}
-                                  rows={4}
-                                />
-                              </div>
+                      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start pl-16 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                          setActiveSection(sectionIndex)
+                          setIsAddDialogOpen(true)
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          <span>Add new subsection</span>
+                        </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Subsection</DialogTitle>
+                          <DialogDescription>Create a new subsection for {section.title}</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                          <Label htmlFor="title">Subsection Title</Label>
+                          <Input
+                            id="title"
+                            placeholder="Enter subsection title"
+                            value={newSubsectionTitle}
+                            onChange={(e) => setNewSubsectionTitle(e.target.value)}
+                          />
+                          </div>
+                          <div className="space-y-2">
+                          <Label htmlFor="format">Content Format</Label>
+                          <div className="flex space-x-4">
+                            <div className="flex items-center">
+                            <input
+                              type="radio"
+                              id="format-text"
+                              name="format"
+                              className="mr-2"
+                              checked={contentFormat === "text"}
+                              onChange={() => setContentFormat("text")}
+                            />
+                            <label htmlFor="format-text">Plain Text</label>
                             </div>
-                            <DialogFooter>
-                              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                                Cancel
-                              </Button>
-                              <Button
-                                onClick={handleAddNewSubsection}
-                                disabled={!newSubsectionTitle.trim() || isGenerating}
-                              >
-                                {isGenerating ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
-                                  </>
-                                ) : (
-                                  <>Generate Content</>
-                                )}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                            <div className="flex items-center">
+                            <input
+                              type="radio"
+                              id="format-markdown"
+                              name="format"
+                              className="mr-2"
+                              checked={contentFormat === "markdown"}
+                              onChange={() => setContentFormat("markdown")}
+                            />
+                            <label htmlFor="format-markdown">Markdown</label>
+                            </div>
+                          </div>
+                          </div>
+                          <div className="space-y-2">
+                          <Label htmlFor="prompt">Content Prompt (Optional)</Label>
+                          <Textarea
+                            id="prompt"
+                            placeholder="Describe what you want this subsection to cover"
+                            value={newSubsectionPrompt}
+                            onChange={(e) => setNewSubsectionPrompt(e.target.value)}
+                            rows={4}
+                          />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                          Cancel
+                          </Button>
+                          <Button
+                          onClick={handleAddNewSubsection}
+                          disabled={!newSubsectionTitle.trim() || isGenerating}
+                          >
+                          {isGenerating ? (
+                            <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Generating...
+                            </>
+                          ) : (
+                            <>Generate Content</>
+                          )}
+                          </Button>
+                        </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                       </div>
                     )}
-                  </div>
+                    </div>
                 ))}
               </div>
             </div>

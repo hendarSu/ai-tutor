@@ -7,7 +7,7 @@ import { Providers } from "@/components/providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AI Tutor & Course Generator",
+  title: "Course Generator",
   description: "Learn with an AI tutor or generate complete online courses with OpenAI",
     generator: 'v0.dev'
 }
